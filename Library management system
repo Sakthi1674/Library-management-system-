@@ -1,0 +1,44 @@
+import sqlite3
+
+# Connect to SQLite database
+conn = sqlite3.connect('library.db')
+c = conn.cursor()
+
+# Create tables if they don't exist
+c.execute('''CREATE TABLE IF NOT EXISTS books
+             (id INTEGER PRIMARY KEY, title TEXT, author TEXT, isbn TEXT)''')
+
+c.execute('''CREATE TABLE IF NOT EXISTS users
+             (id INTEGER PRIMARY KEY, username TEXT, password TEXT, role TEXT)''')
+
+c.execute('''CREATE TABLE IF NOT EXISTS borrowings
+             (id INTEGER PRIMARY KEY, user_id INTEGER, book_id INTEGER, borrow_date DATE, return_date DATE)''')
+
+# Function to add a book
+def add_book(title, author, isbn):
+    c.execute("INSERT INTO books (title, author, isbn) VALUES (?, ?, ?)", (title, author, isbn))
+    conn.commit()
+
+# Function to borrow a book
+def borrow_book(user_id, book_id):
+    # Check if the book is available
+    # Check if the user has already borrowed the maximum number of books
+    # Add entry to borrowings table
+
+# Function to return a book
+def return_book(borrowing_id):
+    # Update return date in borrowings table
+
+# Function to search for books
+def search_books(keyword):
+    c.execute("SELECT * FROM books WHERE title LIKE ? OR author LIKE ?", ('%'+keyword+'%', '%'+keyword+'%'))
+    return c.fetchall()
+
+# Function for user authentication
+def authenticate(username, password):
+    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+    return c.fetchone()
+
+# Sample usage
+add_book("Python Programming", "John Smith", "978-0134852044")
+print(search_books("Python"))
