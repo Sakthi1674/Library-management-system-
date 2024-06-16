@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import date
 
 # Connect to SQLite database
 conn = sqlite3.connect('library.db')
@@ -18,16 +19,40 @@ c.execute('''CREATE TABLE IF NOT EXISTS borrowings
 def add_book(title, author, isbn):
     c.execute("INSERT INTO books (title, author, isbn) VALUES (?, ?, ?)", (title, author, isbn))
     conn.commit()
+    print("Book added successfully.")
+
+# Function to add a user
+def add_user(username, password, role):
+    c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, password, role))
+    conn.commit()
+    print("User added successfully.")
 
 # Function to borrow a book
 def borrow_book(user_id, book_id):
-    # Check if the book is available
-    # Check if the user has already borrowed the maximum number of books
+    # Check if the book is already borrowed
+    c.execute("SELECT * FROM borrowings WHERE book_id = ? AND return_date IS NULL", (book_id,))
+    if c.fetchone():
+        print("Book is already borrowed.")
+        return False
+    
+    # Check if the user has already borrowed the maximum number of books (let's assume max is 3)
+    c.execute("SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND return_date IS NULL", (user_id,))
+    if c.fetchone()[0] >= 3:
+        print("User has already borrowed the maximum number of books.")
+        return False
+    
     # Add entry to borrowings table
+    c.execute("INSERT INTO borrowings (user_id, book_id, borrow_date) VALUES (?, ?, ?)", (user_id, book_id, date.today()))
+    conn.commit()
+    print("Book borrowed successfully.")
+    return True
 
 # Function to return a book
 def return_book(borrowing_id):
     # Update return date in borrowings table
+    c.execute("UPDATE borrowings SET return_date = ? WHERE id = ?", (date.today(), borrowing_id))
+    conn.commit()
+    print("Book returned successfully.")
 
 # Function to search for books
 def search_books(keyword):
@@ -39,6 +64,77 @@ def authenticate(username, password):
     c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
     return c.fetchone()
 
-# Sample usage
-add_book("Python Programming", "John Smith", "978-0134852044")
-print(search_books("Python"))
+# Function to get all users
+def get_all_users():
+    c.execute("SELECT * FROM users")
+    return c.fetchall()
+
+# Main menu
+def main():
+    # Prompt for username and password
+    username = input("Enter username: ")
+    password = input("Enter password: ")
+    
+    user = authenticate(username, password)
+    if not user:
+        print("Authentication failed. Exiting the system.")
+        return
+
+    print("Authenticated successfully.")
+    
+    while True:
+        print("\nLibrary Management System")
+        print("1. Add a book")
+        print("2. Add a user")
+        print("3. Borrow a book")
+        print("4. Return a book")
+        print("5. Search for books")
+        print("6. View all users")
+        print("7. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            title = input("Enter book title: ")
+            author = input("Enter book author: ")
+            isbn = input("Enter book ISBN: ")
+            add_book(title, author, isbn)
+
+        elif choice == '2':
+            username = input("Enter username: ")
+            password = input("Enter password: ")
+            role = input("Enter role (user/admin): ")
+            add_user(username, password, role)
+
+        elif choice == '3':
+            user_id = int(input("Enter user ID: "))
+            book_id = int(input("Enter book ID: "))
+            borrow_book(user_id, book_id)
+
+        elif choice == '4':
+            borrowing_id = int(input("Enter borrowing ID: "))
+            return_book(borrowing_id)
+
+        elif choice == '5':
+            keyword = input("Enter keyword to search for books: ")
+            books = search_books(keyword)
+            for book in books:
+                print(book)
+
+        elif choice == '6':
+            users = get_all_users()
+            for user in users:
+                print(user)
+
+        elif choice == '7':
+            print("Exiting the system.")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+# Run the main menu
+main()
+
+# Close the connection
+conn.close()
